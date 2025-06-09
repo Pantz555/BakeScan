@@ -333,6 +333,7 @@ export default function BakeScanDashboard() {
                         variant="ghost"
                         size="sm"
                         className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                        onClick={() => (window.location.href = "/invoice-analysis")}
                       >
                         View Details
                       </Button>

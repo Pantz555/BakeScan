@@ -3,7 +3,20 @@
 import type React from "react"
 
 import { useState, useCallback } from "react"
-import { Upload, FileText, ImageIcon, AlertCircle, CheckCircle, Clock, Search, Bell, User, Menu } from "lucide-react"
+import {
+  Upload,
+  FileText,
+  ImageIcon,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Search,
+  Bell,
+  User,
+  Menu,
+  AlertTriangle,
+  Tag,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -184,6 +197,12 @@ export default function BakeScanDashboard() {
                 <a href="#" className="text-amber-700 hover:text-amber-900">
                   Invoices
                 </a>
+                <a href="/discrepancy-management" className="text-amber-700 hover:text-amber-900">
+                  Discrepancies
+                </a>
+                <a href="/supplier-management" className="text-amber-700 hover:text-amber-900">
+                  Suppliers
+                </a>
                 <a href="#" className="text-amber-700 hover:text-amber-900">
                   Reports
                 </a>
@@ -285,6 +304,66 @@ export default function BakeScanDashboard() {
           </Card>
         </div>
 
+        {/* Discrepancy Summary */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-amber-900">Discrepancy Alerts</h2>
+            <Button
+              variant="outline"
+              className="border-amber-300 text-amber-700 hover:bg-amber-50"
+              onClick={() => (window.location.href = "/discrepancy-management")}
+            >
+              View All
+            </Button>
+          </div>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-red-200">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-red-600 uppercase tracking-wide">Price Increases</p>
+                    <p className="text-2xl font-bold text-red-900">4</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <Tag className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-amber-600 uppercase tracking-wide">Quantity Issues</p>
+                    <p className="text-2xl font-bold text-amber-900">2</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 uppercase tracking-wide">Duplicate Invoices</p>
+                    <p className="text-2xl font-bold text-blue-900">2</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 ml-auto">
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => (window.location.href = "/discrepancy-management")}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Manage Discrepancies
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Recent Invoices */}
         <div>
           <div className="flex justify-between items-center mb-6">
@@ -333,6 +412,7 @@ export default function BakeScanDashboard() {
                         variant="ghost"
                         size="sm"
                         className="text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                        onClick={() => (window.location.href = "/invoice-analysis")}
                       >
                         View Details
                       </Button>

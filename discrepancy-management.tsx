@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { format } from "date-fns"
 import {
   ArrowLeft,
@@ -35,6 +35,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+
+// Handle ResizeObserver error globally
+if (typeof window !== "undefined") {
+  const originalError = console.error
+  console.error = (...args) => {
+    if (args[0]?.includes?.("ResizeObserver loop completed with undelivered notifications")) {
+      return
+    }
+    originalError(...args)
+  }
+}
 
 // Types
 interface Discrepancy {
@@ -237,44 +248,19 @@ export default function DiscrepancyManagement() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  // Toggle row expansion
-  const toggleRowExpansion = (id: string) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }))
-  }
+  // Suppress ResizeObserver errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      if (event.message.includes("ResizeObserver loop completed with undelivered notifications")) {
+        event.stopImmediatePropagation()
+        event.preventDefault()
+        return false
+      }
+    }
 
-  // Toggle row selection
-  const toggleRowSelection = (id: string) => {
-    const newSelectedRows = { ...selectedRows, [id]: !selectedRows[id] }
-    setSelectedRows(newSelectedRows)
-
-    // Check if all visible rows are selected
-    const allSelected = filteredDiscrepancies.every((d) => newSelectedRows[d.id])
-    setSelectAll(allSelected && filteredDiscrepancies.length > 0)
-  }
-
-  // Toggle select all
-  const toggleSelectAll = () => {
-    const newSelectAll = !selectAll
-    setSelectAll(newSelectAll)
-
-    const newSelectedRows = { ...selectedRows }
-    filteredDiscrepancies.forEach((d) => {
-      newSelectedRows[d.id] = newSelectAll
-    })
-
-    setSelectedRows(newSelectedRows)
-  }
-
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchQuery("")
-    setDateRange({ from: undefined, to: undefined })
-    setStatusFilter("all")
-    setSelectedTab("all")
-  }
+    window.addEventListener("error", handleError)
+    return () => window.removeEventListener("error", handleError)
+  }, [])
 
   // Filter discrepancies based on tab, search, date range, and status
   const filteredDiscrepancies = useMemo(() => {
@@ -329,6 +315,55 @@ export default function DiscrepancyManagement() {
     })
   }, [selectedTab, searchQuery, dateRange, statusFilter])
 
+  // Toggle row expansion
+  const toggleRowExpansion = useCallback((id: string) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }, [])
+
+  // Toggle row selection
+  const toggleRowSelection = useCallback(
+    (id: string) => {
+      setSelectedRows((prev) => {
+        const newSelectedRows = { ...prev, [id]: !prev[id] }
+
+        // Use requestAnimationFrame to prevent ResizeObserver issues
+        requestAnimationFrame(() => {
+          const allSelected = filteredDiscrepancies.every((d) => newSelectedRows[d.id])
+          setSelectAll(allSelected && filteredDiscrepancies.length > 0)
+        })
+
+        return newSelectedRows
+      })
+    },
+    [filteredDiscrepancies],
+  )
+
+  // Toggle select all
+  const toggleSelectAll = useCallback(() => {
+    const newSelectAll = !selectAll
+    setSelectAll(newSelectAll)
+
+    // Use requestAnimationFrame to prevent ResizeObserver issues
+    requestAnimationFrame(() => {
+      const newSelectedRows = { ...selectedRows }
+      filteredDiscrepancies.forEach((d) => {
+        newSelectedRows[d.id] = newSelectAll
+      })
+      setSelectedRows(newSelectedRows)
+    })
+  }, [selectAll, selectedRows, filteredDiscrepancies])
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setSearchQuery("")
+    setDateRange({ from: undefined, to: undefined })
+    setStatusFilter("all")
+    setSelectedTab("all")
+  }, [])
+
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
     const total = filteredDiscrepancies.length
@@ -341,7 +376,7 @@ export default function DiscrepancyManagement() {
   }, [filteredDiscrepancies])
 
   // Get issue type display text and icon
-  const getIssueTypeInfo = (type: string) => {
+  const getIssueTypeInfo = useCallback((type: string) => {
     switch (type) {
       case "price_increase":
         return { text: "Price Increase", icon: <DollarSign className="h-4 w-4" /> }
@@ -356,10 +391,10 @@ export default function DiscrepancyManagement() {
       default:
         return { text: type, icon: <AlertTriangle className="h-4 w-4" /> }
     }
-  }
+  }, [])
 
   // Get status badge
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     switch (status) {
       case "pending":
         return (
@@ -388,10 +423,10 @@ export default function DiscrepancyManagement() {
       default:
         return <Badge variant="outline">{status}</Badge>
     }
-  }
+  }, [])
 
   // Get severity badge
-  const getSeverityBadge = (severity: string) => {
+  const getSeverityBadge = useCallback((severity: string) => {
     switch (severity) {
       case "high":
         return (
@@ -414,26 +449,29 @@ export default function DiscrepancyManagement() {
       default:
         return <Badge variant="outline">{severity}</Badge>
     }
-  }
+  }, [])
 
   // Handle bulk actions
-  const handleBulkAction = (action: string) => {
-    const selectedIds = Object.entries(selectedRows)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([id]) => id)
+  const handleBulkAction = useCallback(
+    (action: string) => {
+      const selectedIds = Object.entries(selectedRows)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([id]) => id)
 
-    console.log(`Performing ${action} on:`, selectedIds)
+      console.log(`Performing ${action} on:`, selectedIds)
 
-    // In a real app, you would make API calls here
-    // For now, just show an alert
-    alert(`${action} action performed on ${selectedIds.length} items`)
-  }
+      // In a real app, you would make API calls here
+      // For now, just show an alert
+      alert(`${action} action performed on ${selectedIds.length} items`)
+    },
+    [selectedRows],
+  )
 
   // Handle export
-  const handleExport = (format: string) => {
+  const handleExport = useCallback((format: string) => {
     console.log(`Exporting in ${format} format`)
     alert(`Exporting discrepancies in ${format} format`)
-  }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
